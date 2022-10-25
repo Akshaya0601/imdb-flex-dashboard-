@@ -1,0 +1,218 @@
+---
+title: "amazon"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+    theme: darkly
+    storyboard: True
+    social: menu
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(DT)
+library(ggplot2)             
+library(tidyverse) 
+library(lattice)
+library(skimr)
+library(janitor)
+```
+
+# OVER VIEW OF DATASET
+
+
+
+### This data set was created to list all shows available on Amazon Prime streaming, and analyze the data to find interesting facts. This data was acquired in May 2022 containing data available in the United States.
+
+```{r}
+amazon <- read.csv(file.choose(), na.strings = c("", "NA"), stringsAsFactors =FALSE)
+summary(amazon)
+str(amazon)
+attach(amazon)
+view(amazon)
+skim_without_charts(amazon)
+```
+
+
+
+# DESCRIPTION 
+
+### Here we can see the short Description about the Coloumn Names given:
+
+```{r}
+library(plotly)
+values_table1 <- rbind(c('id', 'type', 'title', 'age_certificate', 'release_year', 'production_country', 'runtime', 'release_year', 'season' , 'genres','imdb_id','imdb_score','imdb_votes','tmdb_popularity','tmdb_score', 'description'), c("Unique ID for every Movie / TV Show", 
+     "Identifier - A Movie or TV Show", 
+     "Title of the Movie or TV Show", 
+     "Meeting the proof of age requirement", 
+    "Year on which movie is released",
+    "Country where the movie / show was produced",
+    "The duration of a motion picture",
+    "Actual release year of the Movie / TV Show",
+    "Number of parts",
+    "Category of movie",
+    "Internet Movie Database ID",
+    " average score is determined through the scores given by the top-rated critics","Number of votes for imdb"," movie and TV database popularity"," average score is determined through the scores given by the top-rated critics for tv show"))
+fig_table1 <- plot_ly(
+  type = 'table',
+  columnorder = c(1,2),
+  columnwidth = c(12,12),
+  header = list(
+    values = c('<b>VARIABLES</b><br>', '<b>DESCRIPTION</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#119DFF'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12),
+    height = 40
+  ),
+  cells = list(
+    values = values_table1,
+    line = list(color = '#506784'),
+    fill = list(color = c('#25FEFD', 'white')),
+    align = c('left', 'left'),
+    font = list(color = c('#506784'), size = 12),
+    height = 30
+    ))
+fig_table1
+```
+
+
+# Histogram Representation
+
+### The release of TV shows and movies were high duing the year of 2000 to 2020
+
+
+```{r}
+hist(amazon$release_year, col = "green", main = 'RELEASE YEAR')
+```
+
+### The maximum run time of Movies and Tv show is 200 but most of TV show and movies runtime lies between 50 to 100
+
+
+```{r}
+hist(amazon$runtime , col = "blue" , main = 'RUNTIME')
+hist(amazon$imdb_votes , col = "blue" , main = 'imdb votes')
+
+```
+
+# plot Representation
+
+### From this plot we come to know that The maximum run time of Movies and Tv show is 200 but most of TV show and movies runtime lies between 50 to 100
+
+```{r}
+ggplot(data=amazon ,aes(x=type,y=release_year))+
+  geom_point(color='green')
+
+```
+
+### Internet Movie Database score is high in 2020's
+
+```{r}
+ggplot(data=amazon ,aes(x=release_year,y=imdb_score))+
+  geom_point(color='green')
+ggplot(data=amazon ,aes(x=release_year,y=imdb_votes))+
+  geom_point(color='green')
+
+```
+
+### In TMDB (community build movie and Tv database) also high during the year 2020 onwards
+
+```{r}
+ggplot(data=amazon ,aes(x=release_year,y=tmdb_score))+
+  geom_point(color='green')
+
+```
+### Initially there were no tv shows in amazon and now the TMDB propularity gradually became high in 2020's
+
+```{r}
+ggplot(data=amazon ,aes(x=release_year,y=tmdb_popularity))+
+  geom_point(color='green')
+```
+
+# TYPE OF CONTENT
+
+### Here we can see the amount of content in Movies and Tv shows, we come to know that Movie content is high in amazon prime
+
+```{r}
+library(tibble)
+library(dplyr)
+library(ggplot2)
+amount_by_type = amazon %>% group_by(type) %>% summarise(count = n())
+ggplot(data = amount_by_type, aes(x= type, y= count, fill= type))+ 
+  geom_bar(colour ="black", size= 0.8, fill = "dark green" ,stat = "identity")+
+  guides(fill= none)+
+  xlab("amazon Content by Type") + ylab("Amount of amazon Content")+
+  ggtitle("Amount of amazon Content By Type")
+```
+
+### Plot for GENERS
+====================================================
+
+### From this Visual representation we come to know in which genres more number of movies and Tv shows released: In drama genres more number of movies and tv shows are released and In Animation less number of Movies and Tv shows are released 
+
+
+```{r}
+k <- strsplit(amazon$genres, split = ", ")
+amazon_genres = data.frame(type = rep(amazon$type, sapply(k, length)), genres = unlist(k))
+amazon_genres$genres <- as.character(amazon_genres$genres)
+amount_by_genres <- na.omit(amazon_genres) %>%
+  group_by(genres, type) %>%
+  summarise(count = n())
+u <- reshape(data=data.frame(amount_by_genres),idvar="genres",
+                          v.names = "count",
+                          timevar = "type",
+                          direction="wide") %>% 
+                          top_n(10)
+names(u)[2] <- "Number_of_Movies"
+names(u)[3] <- "Number_of_TV_Shows"
+u <- u[order(desc(u$Number_of_Movies +u$Number_of_TV_Shows)),]
+library(ggplot2)
+ggplot(u, aes(Number_of_Movies, Number_of_TV_Shows, colour=genres))+ 
+  geom_point(size=5)+
+  xlab("Number of Movies") + ylab("Number of TV Shows")+
+  ggtitle("Amount of amazon Content By GENERS")
+
+
+```
+
+
+```{r}
+amazon$imdb_votes[is.na(amazon$imdb_votes)]=mean(amazon$imdb_votes,na.rm = TRUE)
+amazon$imdb_score[is.na(amazon$imdb_score)]=mean(amazon$imdb_score,na.rm = TRUE)
+amazon$tmdb_popularity[is.na(amazon$tmdb_popularity)]=mean(amazon$tmdb_popularity,na.rm = TRUE)
+amazon$tmdb_score[is.na(amazon$tmdb_score)]=mean(amazon$tmdb_score,na.rm = TRUE)
+```
+
+# correlation
+
+### IMDB and TMDB scores are highly correlated
+
+```{r}
+library(corrplot)
+corplot =amazon[c(12,15)]
+cor(corplot)
+```
+
+### corrplot
+
+```{r}
+corrplot(cor(corplot))
+```
+
+### corrplot showing correlation between IMDB and TMDB scores
+
+```{r}
+ggplot(data=amazon,aes(imdb_score,tmdb_score))+
+  geom_point(color='red')
+```
+
+# download
+
+```{r}
+datatable(amazon,extensions="Buttons",options=list(dom="Bftrip",Buttons=c('copy','print','csv','pdf')))
+```
+
+
